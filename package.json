@@ -5,9 +5,9 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node index.js",
-    "server_start": "pm2 start index.js",
-    "stop_server": "pm2 kill"
+    "start": "sudo node index.js",
+    "server_start": "sudo pm2 start index.js",
+    "stop_server": "sudo pm2 kill"
   },
   "author": "",
   "license": "ISC",
