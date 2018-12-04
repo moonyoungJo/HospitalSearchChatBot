@@ -4,12 +4,14 @@ const rp = require('request-promise');
 
 require('dotenv').config();
 const KAKAO_KEY = process.env.KAKAO_KEY;
-const app = express().use(bodyParser.json());
-
+const PORT = process.env.PORT;
+const SERVER_URI = `https://${process.env.SERVER_ADDRESS}:${PORT}/static`;
+const app = express();
 const KEYWORD_SEARCH_URI = 'https://dapi.kakao.com/v2/local/search/keyword.json';
 
-app.use(express.static('public'));
-app.listen(process.env.PORT || 80, 
+app.use('/static', express.static('public'));
+app.use(bodyParser.json());
+const server = app.listen(PORT || 80, 
   () => {
     console.log('hospital search server is listening');
 });
@@ -51,7 +53,7 @@ app.post('/api/searchHospital', async function (req, res) {
         encodeURI('?query='+ department) + 
         '&x='+x+
         '&y='+y+
-        '&category_group_code=HP8&radius=5000&sort=distance&page=' + page;
+        '&category_group_code=HP8&radius=10000&sort=distance&page=' + page;
       page++;
 
       let response = await rp({
@@ -115,7 +117,7 @@ app.post('/api/searchPharmacy', async function (req, res) {
         encodeURI('?query=약국') + 
         '&x='+x+
         '&y='+y+
-        '&category_group_code=PM9&radius=5000&sort=distance&page=' + page;
+        '&category_group_code=PM9&radius=10000&sort=distance&page=' + page;
       page++;
 
       let response = await rp({
@@ -179,7 +181,7 @@ app.post('/api/searchEmergencyRoom', async function (req, res) {
         encodeURI('?query=응급실') + 
         '&x='+x+
         '&y='+y+
-        '&radius=5000&sort=distance&page=' + page;
+        '&radius=10000&sort=distance&page=' + page;
       page++;
 
       let response = await rp({
@@ -198,6 +200,9 @@ app.post('/api/searchEmergencyRoom', async function (req, res) {
       console.log(response.documents);
       for(let index = 0; index < totalCount; index++){
         let document = response.documents[index];
+        if(document.category_name !== '의료,건강 > 병원 > 응급실'){
+          continue;
+        }
         //크롤러로 모은 정보를 이용해 열려있는지 확인하기
         let description = `가장 가까운 응급실입니다. \n\n병원명: ${document.place_name}\n위치 : ${document.address_name}`;
         if(document.phone !== undefined){
