@@ -5,11 +5,11 @@ const rp = require('request-promise');
 require('dotenv').config();
 const KAKAO_KEY = process.env.KAKAO_KEY;
 const PORT = process.env.PORT;
-const SERVER_URI = `https://${process.env.SERVER_ADDRESS}:${PORT}/static`;
+const SERVER_URI = `http://${process.env.SERVER_ADDRESS}:${PORT}/static/`;
 const app = express();
 const KEYWORD_SEARCH_URI = 'https://dapi.kakao.com/v2/local/search/keyword.json';
 
-app.use('/static', express.static('public'));
+app.use('/static', express.static(__dirname + '/public'));
 app.use(bodyParser.json());
 const server = app.listen(PORT || 80, 
   () => {
@@ -72,14 +72,17 @@ app.post('/api/searchHospital', async function (req, res) {
       for(let index = 0; index < totalCount; index++){
         let document = response.documents[index];
         //크롤러로 모은 정보를 이용해 열려있는지 확인하기
-        let description = `가장 가까운 ${department}입니다. \n\n병원명: ${document.place_name}\n위치 : ${document.address_name}`;
+        let description = `앙몬드봇이 가장 가까운 ${department}를 찾았습니다.` +  
+          `\n\n병원명: ${document.place_name}\n위치 : ${document.address_name}`;
         if(document.phone !== undefined){
           description += `\n전화번호 : ${document.phone}`;
         }
-        res.send(makeButtonResponse(
+        res.send(makeResponse(
+          document.place_name,
           description,
-          'Daum 지도로 열기',
-          document.place_url)); 
+          SERVER_URI+'search_hospital.jpg',
+          document.place_url
+        ));
         return;   
       }
     }
@@ -136,14 +139,17 @@ app.post('/api/searchPharmacy', async function (req, res) {
       for(let index = 0; index < totalCount; index++){
         let document = response.documents[index];
         //크롤러로 모은 정보를 이용해 열려있는지 확인하기
-        let description = `가장 가까운 약국입니다. \n\n약국명: ${document.place_name}\n위치 : ${document.address_name}`;
+        let description = `앙몬드 봇이 가장 가까운 약국을 찾았습니다. ` + 
+          `\n\n약국명: ${document.place_name}\n위치 : ${document.address_name}`;
         if(document.phone !== undefined){
           description += `\n전화번호 : ${document.phone}`;
         }
-        res.send(makeButtonResponse(
+        res.send(makeResponse(
+          document.place_name,
           description,
-          'Daum 지도로 열기',
-          document.place_url)); 
+          SERVER_URI+'search_pharmacy.jpg',
+          document.place_url
+        ));
         return;   
       }
     }
@@ -204,14 +210,18 @@ app.post('/api/searchEmergencyRoom', async function (req, res) {
           continue;
         }
         //크롤러로 모은 정보를 이용해 열려있는지 확인하기
-        let description = `가장 가까운 응급실입니다. \n\n병원명: ${document.place_name}\n위치 : ${document.address_name}`;
+        let description = `\n앙몬드 봇이 가장 가까운 응급실을 찾았습니다. \n\n병원명: ${document.place_name}` + 
+          `\n위치 : ${document.address_name}`;
         if(document.phone !== undefined){
           description += `\n전화번호 : ${document.phone}`;
         }
-        res.send(makeButtonResponse(
+        console.log(SERVER_URI+'search_emergency.jpg');
+        res.send(makeResponse(
+          document.place_name,
           description,
-          'Daum 지도로 열기',
-          document.place_url)); 
+          SERVER_URI+'search_emergency.jpg',
+          document.place_url
+        ));
         return;   
       }
     }
@@ -232,6 +242,31 @@ function makeTextResponse(text){
     ]
   };
 }
+function makeResponse(title, description, imageURL, buttonURL){
+  return {
+    "version": "2.0",
+    "template": {
+      "outputs": [
+        {
+          "basicCard": {
+            "title": title,
+            "description": description,
+            "thumbnail": {
+              "imageUrl": imageURL
+            },
+            "buttons": [
+              {
+                "action":  "webLink",
+                "label": "브라우저로 위치 확인",
+                "webLinkUrl": buttonURL
+              }
+            ]
+          }
+        }
+      ]
+    }
+  }
+}
 function makeButtonResponse(description, buttonDescript, buttonURL){
   return {"contents":[
       {
@@ -245,32 +280,6 @@ function makeButtonResponse(description, buttonDescript, buttonURL){
                 "label":buttonDescript,
                 "data":{
                   'url':buttonURL
-                }
-              }
-            ]
-          }
-        ]
-      }
-    ]
-  }
-}
-function makeCardImageResponse(title, image, desc) {
-  return{
-    'contents': [
-      {
-        'type': 'card.image',
-        'cards': [
-          {
-            'imageUrl': image,
-            'description': desc,
-            'title': title,
-            'linkUrl': {},
-            'buttons':[
-              {
-                'type':'url',
-                'label':'더보기',
-                'data': {
-                  'url': "https://search.daum.net/search?w=img&nil_search=btn&DA=NTB&enc=utf8&q=%EA%B3%A0%EC%96%91%EC%9D%B4"
                 }
               }
             ]
